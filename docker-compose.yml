@@ -1,0 +1,64 @@
+# Drupal with PostgreSQL
+#
+# Access via "http://localhost:8080"
+#   (or "http://$(docker-machine ip):8080" if using docker-machine)
+#
+# During initial Drupal setup,
+# Database type: PostgreSQL
+# Database name: postgres
+# Database username: postgres
+# Database password: example
+# ADVANCED OPTIONS; Database host: postgres
+
+version: '3.1'
+
+services:
+
+  drupal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #image: drupal:10-apache
+    ports:
+      - 8080:80
+    volumes:
+      - ./drupal/var/www/html/modules:/var/www/html/modules
+      - ./drupal/var/www/html/profiles:/var/www/html/profiles
+      - ./drupal/var/www/html/themes:/var/www/html/themes
+      # this takes advantage of the feature in Docker that a new anonymous
+      # volume (which is what we're creating here) will be initialized with the
+      # existing content of the image at the same location
+      - ./drupal/var/www/html/sites:/var/www/html/sites
+    #   - AGREGAR SETTING
+    restart: always
+    networks:
+      - drupal
+
+  mysql:
+    image: mysql:8.0.30
+    container_name: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+      - ./mysql/datadir:/var/lib/mysql
+      - ./mysql/config/my.cnf:/etc/mysql/conf.d/override-config.cnf
+      - ./mysql/logs:/var/log/mysql
+    env_file:
+      - .env
+    networks:
+      - drupal
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin
+    restart: always
+    ports:
+      - 8081:80
+    env_file:
+      - .env
+    networks:
+      - drupal
+
+networks:
+  drupal:
+    external: false
